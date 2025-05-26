@@ -25,7 +25,7 @@ jobs:
           if [ -f composer.json ]; then composer install --no-dev; fi
 
       - name: Build PHAR
-        run: php build-phar.php
+        run: php -d phar.readonly=0 build-phar.php
 
       - name: Rename PHAR for release (remove .phar)
         run: |
