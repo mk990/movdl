@@ -1,10 +1,6 @@
 <?php
 
 $pharFile = 'movdl.phar';
-
-require_once 'vendor/autoload.php';
-Dotenv\Dotenv::createImmutable(__DIR__)->load();
-
 // Clean up
 if (file_exists($pharFile)) {
     unlink($pharFile);
@@ -22,8 +18,14 @@ $phar->startBuffering();
 $phar->buildFromDirectory(__DIR__, '/\.(php|html|css|js)$/');
 
 // Set the stub (entry point)
-$defaultStub = $phar->createDefaultStub('index.php');
-$phar->setStub($defaultStub);
+$stub = <<<EOD
+#!/usr/bin/env php
+<?php
+Phar::mapPhar('movdl.phar');
+require 'phar://movdl.phar/index.php';
+__HALT_COMPILER();
+EOD;
+$phar->setStub($stub);
 
 // Stop buffering
 $phar->stopBuffering();
