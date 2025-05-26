@@ -1,33 +1,49 @@
 <?php
 
 $pharFile = 'movdl.phar';
+
+// Validate environment
+if (ini_get('phar.readonly')) {
+    die("Error: Run with 'php -d phar.readonly=0 build-phar.php'\n");
+}
+
 // Clean up
 if (file_exists($pharFile)) {
     unlink($pharFile);
 }
-if (file_exists($pharFile . '.gz')) {
-    unlink($pharFile . '.gz');
-}
 
-$phar = new Phar($pharFile);
+try {
+    $phar = new Phar($pharFile);
+    $phar->startBuffering();
 
-// Start buffering
-$phar->startBuffering();
+    // Add files with better filtering
+    $phar->buildFromDirectory(__DIR__, '/\.(php|json)$/');
 
-// Add all files recursively
-$phar->buildFromDirectory(__DIR__, '/\.(php|html|css|js)$/');
+    // Remove unwanted files
+    $unwanted = ['build-phar.php', 'composer.lock'];
+    foreach ($unwanted as $file) {
+        if (isset($phar[$file])) {
+            unset($phar[$file]);
+        }
+    }
 
-// Set the stub (entry point)
-$stub = <<<EOD
+    // Set stub with better error handling
+    $stub = <<<'EOD'
 #!/usr/bin/env php
 <?php
-Phar::mapPhar('movdl.phar');
-require 'phar://movdl.phar/index.php';
+Phar::mapPhar();
+require 'phar://' . __FILE__ . '/index.php';
 __HALT_COMPILER();
 EOD;
-$phar->setStub($stub);
 
-// Stop buffering
-$phar->stopBuffering();
+    $phar->setStub($stub);
+    $phar->stopBuffering();
+    // Make executable on Unix
+    if (PHP_OS_FAMILY !== 'Windows') {
+        chmod($pharFile, 0755);
+    }
 
-echo "PHAR file created: $pharFile\n";
+    echo "PHAR file created: $pharFile\n";
+} catch (Exception $e) {
+    die('Build failed: ' . $e->getMessage() . "\n");
+}
