@@ -1,12 +1,12 @@
 <?php
 
+namespace App;
+
 /**
  * FIXME: fix bugs to this file
  * Docs: https://github.com/danog/MadelineProto/blob/v8/examples/bot.php
  * https://docs.madelineproto.xyz/docs/UPDATES.html
 */
-
-require_once 'vendor/autoload.php';
 
 use danog\MadelineProto\EventHandler\Attributes\Cron;
 use danog\MadelineProto\EventHandler\Attributes\Handler;

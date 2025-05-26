@@ -1,10 +1,11 @@
 <?php
+
+namespace App;
+
 /**
  * Fixed Telegram MadelineProto Connection Script
  * This script demonstrates how to connect to Telegram using MadelineProto with proper proxy configuration
  */
-
-require_once 'vendor/autoload.php';
 
 use danog\MadelineProto\API;
 use danog\MadelineProto\Logger;
@@ -13,60 +14,61 @@ use danog\MadelineProto\Settings\AppInfo;
 use danog\MadelineProto\Settings\Connection;
 use danog\MadelineProto\Stream\Proxy\HttpProxy;
 use danog\MadelineProto\Stream\Proxy\SocksProxy;
+use Exception;
 
 class TelegramClient
 {
     private $MadelineProto;
-    private $session_file;
+    private $sessionFile;
 
-    public function __construct($session_file = 'session.madeline')
+    public function __construct($sessionFile = 'session.madeline')
     {
-        $this->session_file = $session_file;
+        $this->sessionFile = $sessionFile;
     }
 
     /**
      * Initialize and connect to Telegram
      */
-    public function connect($api_id, $api_hash)
+    public function connect($apiId, $apiHash)
     {
         try {
             $settings = new Settings();
 
             // Configure proxy if specified
-            $proxy_url = env('SOCKS_PROXY');
-            $proxy_port = env('SOCKS_PORT', '1080');
+            $proxyUrl = env('SOCKS_PROXY');
+            $proxyPort = env('SOCKS_PORT', '1080');
 
-            if (!empty($proxy_url)) {
-                echo "Configuring proxy: $proxy_url:$proxy_port\n";
+            if (!empty($proxyUrl)) {
+                echo "Configuring proxy: $proxyUrl:$proxyPort\n";
 
                 $connection = new Connection();
 
                 // Parse proxy URL to determine type
-                if (strpos($proxy_url, 'http://') === 0) {
+                if (strpos($proxyUrl, 'http://') === 0) {
                     // HTTP proxy
-                    $proxy_host = str_replace('http://', '', $proxy_url);
+                    $proxyHost = str_replace('http://', '', $proxyUrl);
                     $connection->addProxy(HttpProxy::class, [
-                        'address' => $proxy_host,
-                        'port'    => (int)$proxy_port,
+                        'address' => $proxyHost,
+                        'port'    => (int)$proxyPort,
                     ]);
-                    echo "Using HTTP proxy: $proxy_host:$proxy_port\n";
-                } elseif (strpos($proxy_url, 'socks://') === 0 || strpos($proxy_url, 'socks5://') === 0) {
+                    echo "Using HTTP proxy: $proxyHost:$proxyPort\n";
+                } elseif (strpos($proxyUrl, 'socks://') === 0 || strpos($proxyUrl, 'socks5://') === 0) {
                     // SOCKS proxy
-                    $proxy_host = preg_replace('/^socks5?:\/\//', '', $proxy_url);
+                    $proxyHost = preg_replace('/^socks5?:\/\//', '', $proxyUrl);
                     $connection->addProxy(SocksProxy::class, [
-                        'address' => $proxy_host,
-                        'port'    => (int)$proxy_port,
+                        'address' => $proxyHost,
+                        'port'    => (int)$proxyPort,
                     ]);
-                    echo "Using SOCKS proxy: $proxy_host:$proxy_port\n";
+                    echo "Using SOCKS proxy: $proxyHost:$proxyPort\n";
                 } else {
                     // Assume it's just the IP/hostname without protocol
-                    $proxy_host = $proxy_url;
+                    $proxyHost = $proxyUrl;
                     // Try HTTP proxy first (more common for port 8086)
                     $connection->addProxy(HttpProxy::class, [
-                        'address' => $proxy_host,
-                        'port'    => (int)$proxy_port,
+                        'address' => $proxyHost,
+                        'port'    => (int)$proxyPort,
                     ]);
-                    echo "Using HTTP proxy (assumed): $proxy_host:$proxy_port\n";
+                    echo "Using HTTP proxy (assumed): $proxyHost:$proxyPort\n";
                 }
 
                 $settings->setConnection($connection);
@@ -84,22 +86,22 @@ class TelegramClient
 
             // App info
             $app = (new AppInfo())
-                ->setApiId((int)$api_id)
-                ->setApiHash($api_hash);
+                ->setApiId((int)$apiId)
+                ->setApiHash($apiHash);
             $settings->setAppInfo($app);
 
             // Connection settings
-            $connection_settings = $settings->getConnection();
-            $connection_settings->setTimeout(30); // 30 seconds timeout
+            $connectionSettings = $settings->getConnection();
+            $connectionSettings->setTimeout(30); // 30 seconds timeout
 
             // Disable IPv6 if causing issues
-            $connection_settings->setIpv6(false);
+            $connectionSettings->setIpv6(false);
 
-            $settings->setConnection($connection_settings);
+            $settings->setConnection($connectionSettings);
 
             // Create MadelineProto instance
             echo "Initializing MadelineProto...\n";
-            $this->MadelineProto = new API($this->session_file, $settings);
+            $this->MadelineProto = new API($this->sessionFile, $settings);
 
             // Start the client
             echo "Starting client...\n";
@@ -145,11 +147,11 @@ class TelegramClient
     /**
      * Send a message to a bot
      */
-    public function sendBotMessage($bot_id, $message)
+    public function sendBotMessage($botId, $message)
     {
         try {
             $result = $this->MadelineProto->messages->sendMessage([
-                'peer'    => (int)$bot_id,
+                'peer'    => (int)$botId,
                 'message' => (string)$message
             ]);
 
@@ -273,188 +275,4 @@ class TelegramClient
         // TelegramEventHandler::startAndLoop('my_session.madeline', $setting);
         echo "Listening for updates...\n";
     }
-}
-
-/**
- * Load environment variables from .env file
- */
-function loadEnvFile($file = '.env')
-{
-    if (!file_exists($file)) {
-        return false;
-    }
-
-    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos($line, '#') === 0) {
-            continue;
-        } // Skip comments
-
-        if (strpos($line, '=') === false) {
-            continue;
-        } // Skip lines without =
-
-        list($key, $value) = explode('=', $line, 2);
-        $key = trim($key);
-        $value = trim($value, " \t\n\r\0\x0B\"'"); // Remove quotes and whitespace
-
-        if (!empty($key)) {
-            putenv("$key=$value");
-            $_ENV[$key] = $value;
-        }
-    }
-
-    return true;
-}
-
-/**
- * Get environment variable
- */
-function env($key, $default = null)
-{
-    $env = getenv($key);
-    return $env !== false ? $env : $default;
-}
-
-/**
- * Test proxy connection
- */
-function testProxy($proxy_host, $proxy_port, $proxy_type = 'http')
-{
-    echo "Testing $proxy_type proxy connection to $proxy_host:$proxy_port...\n";
-
-    // Create a simple socket connection test
-    $context = stream_context_create();
-
-    if ($proxy_type === 'http') {
-        // For HTTP proxy, try to connect directly first
-        $fp = @fsockopen($proxy_host, $proxy_port, $errno, $errstr, 10);
-        if ($fp) {
-            fclose($fp);
-            echo "✓ HTTP proxy connection successful\n";
-            return true;
-        } else {
-            echo "✗ HTTP proxy connection failed: $errstr ($errno)\n";
-            return false;
-        }
-    }
-
-    return false;
-}
-
-/**
- * Create example .env file
- */
-function createExampleEnvFile()
-{
-    $envContent = '# Telegram API Credentials
-# Get these from https://my.telegram.org
-TELEGRAM_API_ID=your_api_id_here
-TELEGRAM_API_HASH=your_api_hash_here
-
-# Proxy settings (choose one)
-# For HTTP proxy:
-SOCKS_PROXY=127.0.0.1
-SOCKS_PORT=8086
-
-# For SOCKS5 proxy:
-# SOCKS_PROXY=socks5://127.0.0.1
-# SOCKS_PORT=1080
-
-# Leave empty to connect directly (no proxy)
-# SOCKS_PROXY=
-# SOCKS_PORT=
-';
-
-    file_put_contents('.env.example', $envContent);
-    echo "Created .env.example file. Copy it to .env and add your credentials.\n";
-}
-
-// Example usage
-function main()
-{
-    echo "=== Fixed Telegram MadelineProto Client ===\n\n";
-
-    // Try to load .env file first
-    if (loadEnvFile('.env')) {
-        echo "✓ Loaded .env file\n";
-    } else {
-        echo "⚠ .env file not found\n";
-        createExampleEnvFile();
-    }
-
-    // Get API credentials from environment variables
-    $api_id = env('TELEGRAM_API_ID');
-    $api_hash = env('TELEGRAM_API_HASH');
-
-    if (empty($api_id) || empty($api_hash)) {
-        echo "\n❌ API credentials not found!\n";
-        echo "Please check your .env file or environment variables.\n";
-        return;
-    }
-    echo "✓ API credentials found\n";
-
-    // Test proxy if configured
-    $proxy_host = env('SOCKS_PROXY');
-    $proxy_port = env('SOCKS_PORT', '1080');
-
-    if (!empty($proxy_host)) {
-        // Clean up the proxy host
-        $clean_proxy_host = str_replace(['http://', 'https://', 'socks://', 'socks5://'], '', $proxy_host);
-        testProxy($clean_proxy_host, $proxy_port, 'http');
-    }
-
-    $client = new TelegramClient('my_session.madeline');
-
-    // Connect to Telegram
-    if ($client->connect($api_id, $api_hash)) {
-        echo "\n=== Connection successful! ===\n\n";
-
-        // Example operations
-
-        // echo "Getting dialogs...\n";
-        // $client->getDialogs();
-        // return;
-
-        echo "\nGetting history...\n";
-
-        $chat_history = $client->getHistory(-1001209723598, 3);
-        // want to save chat history to file
-        foreach ($chat_history['messages'] as $item) {
-            if (strpos($item['message'], 'سریال') !== false) {
-                $bot_link = isset($item['entities'][0]['url']) ? $item['entities'][0]['url'] : 'No link';
-                $client->sendBotMessage(1396990198, $client->parseTelegramBotLink($bot_link)['start_parameter']);
-            }
-        }
-    } else {
-        echo "❌ Failed to connect to Telegram.\n";
-        echo "\nTroubleshooting tips:\n";
-        echo "1. Check if your proxy is running and accessible\n";
-        echo "2. Try without proxy (comment out SOCKS_PROXY in .env)\n";
-        echo "3. Verify your API credentials\n";
-        echo "4. Check firewall/network restrictions\n";
-    }
-}
-
-function openLinkBot($url)
-{
-    try {
-        if (empty($url) || $url == 'No link' || strpos($url, 'http') === false) {
-            echo "No link provided.\n";
-            return;
-        }
-        // Create a new TelegramClient instance
-        $client = new TelegramClient('my_session.madeline');
-        // dynmic Id bot
-        $client->sendMessage(1396990198, (string)$url);
-    } catch (\Throwable $th) {
-        echo 'Error: ' . $th->getMessage() . "\n";
-    }
-}
-
-// Run the script
-if (php_sapi_name() === 'cli') {
-    main();
-} else {
-    echo "This script should be run from command line.\n";
 }
