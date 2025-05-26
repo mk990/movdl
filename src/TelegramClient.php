@@ -185,12 +185,14 @@ class TelegramClient
     /**
      * Get all dialogs (chats)
      */
-    public function getDialogs()
+    public function getDialogs($showMessage = true)
     {
         try {
             $dialogs = $this->MadelineProto->messages->getDialogs([]);
 
-            echo 'Found ' . count($dialogs['dialogs']) . " dialogs\n";
+            if ($showMessage) {
+                echo 'Found ' . count($dialogs['dialogs']) . " dialogs\n";
+            }
 
             foreach ($dialogs['dialogs'] as $dialog) {
                 // Get chat info
@@ -201,11 +203,15 @@ class TelegramClient
                 if (strpos($dialog['peer'], '-') === 0) {
                     // This is a channel or group
                     $peer = $dialog['peer'];
-                    echo 'Channel/Group: ' . $dialog['peer'] . "\n";
+                    if ($showMessage) {
+                        echo 'Channel/Group: ' . $dialog['peer'] . "\n";
+                    }
                 } else {
                     // This is a user
                     $peer = $dialog['peer'];
-                    echo 'User/bot: ' . $dialog['peer'] . "\n";
+                    if ($showMessage) {
+                        echo 'User/bot: ' . $dialog['peer'] . "\n";
+                    }
                 }
 
                 // echo  $peer;

@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php
 
 define('ok', 'ok');
@@ -5,6 +6,18 @@ require_once 'vendor/autoload.php';
 Dotenv\Dotenv::createImmutable(__DIR__)->load();
 
 use App\TelegramClient;
+
+$options = getopt('hV', ['help', 'version']);
+
+if (isset($options['h']) || isset($options['help'])) {
+    echo "Usage: php script.php [--help] [--version]\n";
+    exit;
+}
+
+if (isset($options['V']) || isset($options['version'])) {
+    echo "Version 0.0.1\n";
+    exit;
+}
 
 // Get API credentials from environment variables
 $apiId = env('TELEGRAM_API_ID');
@@ -36,8 +49,7 @@ if ($client->connect($apiId, $apiHash)) {
     // Example operations
 
     // echo "Getting dialogs...\n";
-    // $client->getDialogs();
-    // return;
+    $client->getDialogs(false);
 
     echo "\nGetting history...\n";
 
