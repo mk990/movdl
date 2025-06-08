@@ -163,6 +163,26 @@ class TelegramClient
         }
     }
 
+    public function sendBotInlineQuery($peer, $bot, string $query, string $offset = '')
+    {
+        return $this->MadelineProto->messages->getInlineBotResults([
+            'peer'      => $peer,
+            'bot'       => $bot,
+            'query'     => $query,
+            'offset'    => $offset
+        ]);
+    }
+
+    public function clickCallbackButton($peer, int $msgId, $dataBytes, bool $game = false)
+    {
+        return $this->MadelineProto->messages->getBotCallbackAnswer([
+            'peer'   => $peer,
+            'msg_id' => $msgId,
+            'data'   => $dataBytes,
+            'game'   => $game
+        ]);
+    }
+
     /**
      * Get chat history
      */
